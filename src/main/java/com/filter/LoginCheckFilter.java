@@ -30,7 +30,9 @@ public class LoginCheckFilter implements Filter {
                 "/employee/login",
                 "/employee/logout",
                 "/backend/**",
-                "/front/**"
+                "/front/**",
+                "/user/login",
+                "/user/logout",
         };
         //2.匹配,符合则展示页面，登录后也展示
         boolean check = check(urls, requestURI);

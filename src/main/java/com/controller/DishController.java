@@ -2,10 +2,12 @@ package com.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.common.CustomException;
 import com.common.R;
 import com.dto.DishDto;
 import com.entity.Category;
 import com.entity.Dish;
+import com.entity.DishFlavor;
 import com.entity.Setmeal;
 import com.service.CategoryService;
 import com.service.DishFlavorService;
@@ -124,15 +126,49 @@ public class DishController {
 
 
     @DeleteMapping
-    public R<String> delete(Long ids){
+    public R<String> delete(@RequestParam List<Long> ids){
 
         LambdaQueryWrapper<Dish> queryWrapper=new LambdaQueryWrapper();
-        queryWrapper.eq(Dish::getId,ids);
-        Dish dish=dishService.getOne(queryWrapper);
-        dish.setName("我被修改了");
-        dishService.update(dish,queryWrapper);
+        queryWrapper.in( ids!=null,Dish::getId,ids);
+        List<Dish> list=dishService.list(queryWrapper);
+
+        for (Dish dish : list) {
+            Integer status = dish.getStatus();
+            //如果不是在售卖,则可以删除
+            if (status == 0){
+                dishService.removeById(dish.getId());
+            }else {
+                //此时应该回滚,因为可能前面的删除了，但是后面的是正在售卖
+                throw new CustomException("删除菜品中有正在售卖菜品,无法全部删除");
+            }
+        }
+        LambdaQueryWrapper<DishFlavor> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.in(DishFlavor::getDishId,ids);
+        dishFlavorService.remove(lambdaQueryWrapper);
 
         return  R.success("修改成功");
 
     }
+
+    @PostMapping("/status/{status}")
+    public R<String> updateStatus(@PathVariable("status") Integer status,@RequestParam List<Long> ids){
+
+        LambdaQueryWrapper<Dish> queryWrapper=new LambdaQueryWrapper<>();
+
+        queryWrapper.in(ids!=null,Dish::getId,ids);
+
+       List<Dish> list=dishService.list(queryWrapper);
+
+        for( Dish dish:list){
+
+            if (dish!=null){
+                dish.setStatus(status);
+                dishService.updateById(dish);
+            }
+        }
+
+        return R.success("修改成功");
+
+    }
+
 }

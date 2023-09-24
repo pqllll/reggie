@@ -6,12 +6,14 @@ import com.common.R;
 import com.entity.Category;
 import com.entity.Employee;
 import com.service.CategoryService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@Slf4j
 @RequestMapping("/category")
 public class CategoryController {
     @Autowired
@@ -30,6 +32,8 @@ public class CategoryController {
 
         LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper();
 
+        List<Category> list = categoryService.list(queryWrapper);
+       
         //按序排列
         queryWrapper.orderByAsc(Category::getSort);
 

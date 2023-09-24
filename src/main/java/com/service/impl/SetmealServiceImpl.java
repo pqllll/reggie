@@ -2,12 +2,15 @@ package com.service.impl;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.common.CustomException;
 import com.common.R;
+import com.dto.DishDto;
 import com.dto.SetmealDto;
 import com.entity.Category;
+import com.entity.Dish;
 import com.entity.Setmeal;
 import com.entity.SetmealDish;
 import com.mapper.SetmealMapper;
@@ -82,4 +85,43 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
 
 
     }
+
+    //传过来的是套餐id，先展示原有信息
+    @Override
+    public SetmealDto getWithID(Long id) {
+
+        //查询套餐基本信息，从setmeal表查询
+        Setmeal setmeal = this.getById(id);
+        SetmealDto setmealDto = new SetmealDto();
+        BeanUtils.copyProperties(setmeal,setmealDto);
+        //查询当前套餐对应的菜品信息，从setmeal_dish表查询
+        LambdaQueryWrapper<SetmealDish> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SetmealDish::getSetmealId,setmeal.getId());
+        List<SetmealDish> dishes = setmealDishService.list(queryWrapper);
+        setmealDto.setSetmealDishes(dishes);
+        return setmealDto;
+
+
+    }
+
+    @Override
+    @Transactional
+    public void updateWithDishs(SetmealDto setmealDto) {
+        this.updateById(setmealDto);
+        //清理当前套餐对应的菜品数据---setmeal_dish表的delete操作
+        LambdaQueryWrapper<SetmealDish> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SetmealDish::getSetmealId,setmealDto.getId());
+        setmealDishService.remove(queryWrapper);
+        //添加当前提交过来的菜品数据---setmeal_dish表的insert操作
+        List<SetmealDish> dishes = setmealDto.getSetmealDishes();
+        dishes = dishes.stream().map((item)->{
+            item.setId(IdWorker.getId());
+            item.setSetmealId(setmealDto.getId());
+            return item;
+        }).collect(Collectors.toList());
+        setmealDishService.saveBatch(dishes);
+
+    }
+
+
 }
