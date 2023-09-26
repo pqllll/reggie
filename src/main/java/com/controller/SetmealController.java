@@ -7,6 +7,7 @@ import com.dto.DishDto;
 import com.dto.SetmealDto;
 import com.entity.*;
 import com.service.CategoryService;
+import com.service.DishService;
 import com.service.SetmealDishService;
 import com.service.SetmealService;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,9 @@ public class SetmealController {
 
     @Autowired
     CategoryService categoryService;
+
+    @Autowired
+    DishService dishService;
 
     @PostMapping
     public R<String> save(@RequestBody SetmealDto setmealDto) {
@@ -140,4 +144,51 @@ public class SetmealController {
         setmealService.updateWithDishs(setmealDto);
        return R.success("修改成功");
     }
+
+    @GetMapping("/list")
+    public  R<List<Setmeal>> list(Setmeal setmeal){
+
+        LambdaQueryWrapper<Setmeal> queryWrapper=new LambdaQueryWrapper<>();
+
+        queryWrapper.eq(setmeal.getCategoryId()!=null,Setmeal::getCategoryId,setmeal.getCategoryId());
+
+        //添加条件，状态为1（起售），才能显示出来
+        queryWrapper.eq(Setmeal::getStatus,1);
+
+        queryWrapper.orderByDesc(Setmeal::getUpdateTime);
+
+        List<Setmeal> list=setmealService.list(queryWrapper);
+
+        return  R.success(list);
+
+    }
+
+    /**
+     * 点击查看套餐中的菜品
+     */
+    @GetMapping("/dish/{id}")
+    public R<List<DishDto>> dish(@PathVariable("id") Long SetmealId) {
+        LambdaQueryWrapper<SetmealDish> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SetmealDish::getSetmealId, SetmealId);
+        //获取套餐里面的所有菜品  这个就是SetmealDish表里面的数据
+        List<SetmealDish> list = setmealDishService.list(queryWrapper);
+
+        List<DishDto> dishDtos = list.stream().map((setmealDish) -> {
+            DishDto dishDto = new DishDto();
+            //将套餐菜品关系表中的数据拷贝到dishDto中
+            BeanUtils.copyProperties(setmealDish, dishDto);
+            //这里是为了把套餐中的菜品的基本信息填充到dto中，
+            // 比如菜品描述，菜品图片等菜品的基本信息
+            Long dishId = setmealDish.getDishId();
+            Dish dish = dishService.getById(dishId);
+            //将菜品信息拷贝到dishDto中
+            BeanUtils.copyProperties(dish, dishDto);
+
+            return dishDto;
+        }).collect(Collectors.toList());
+
+        return R.success(dishDtos);
+    }
+
+
 }

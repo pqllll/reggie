@@ -1963,7 +1963,11 @@ SELECT|sys.sys_config:null
       <DataType>int|0s</DataType>
       <DefaultExpression>0</DefaultExpression>
     </column>
-    <key id="488" parent="315" name="PRIMARY">
+    <index id="488" parent="315" name="user_phone_index">
+      <ColNames>phone</ColNames>
+      <Type>btree</Type>
+    </index>
+    <key id="489" parent="315" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <ColNames>id</ColNames>
       <Primary>1</Primary>

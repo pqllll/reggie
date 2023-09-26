@@ -32,7 +32,8 @@ public class LoginCheckFilter implements Filter {
                 "/backend/**",
                 "/front/**",
                 "/user/login",
-                "/user/logout",
+                "/user/logout"
+
         };
         //2.匹配,符合则展示页面，登录后也展示
         boolean check = check(urls, requestURI);
@@ -49,6 +50,14 @@ public class LoginCheckFilter implements Filter {
 
             long id = Thread.currentThread().getId();
             log.info("线程id为:{}",id);
+            filterChain.doFilter(request, response);
+            return;
+        }
+        if (request.getSession().getAttribute("phone") != null) {
+            Object phId=  request.getSession().getAttribute("phone");
+            Long  phoneId = Long.valueOf(String.valueOf(phId));
+            BaseContext.setCurrentId(phoneId);
+
             filterChain.doFilter(request, response);
             return;
         }

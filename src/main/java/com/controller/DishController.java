@@ -107,20 +107,32 @@ public class DishController {
      * 根据菜品查找种类种的菜品
      */
     @GetMapping("/list")
-    public  R<List<Dish>> list(Dish dish){
-
-        LambdaQueryWrapper<Dish> queryWrapper=new LambdaQueryWrapper<>();
-
+    public  R<List<DishDto>> list(Dish dish){
+        List<DishDto> dishDtoList = null;
+        //构造查询条件
+        LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(dish.getCategoryId()!=null,Dish::getCategoryId,dish.getCategoryId());
-
-        //添加条件，状态为1（起售），才能显示出来
+        //添加条件，查询状态为1（起售状态）的菜品
         queryWrapper.eq(Dish::getStatus,1);
+        //添加排序条件
+        queryWrapper.orderByAsc(Dish::getSort).orderByDesc(Dish::getUpdateTime);
+        List<Dish> list = dishService.list(queryWrapper);
 
-        queryWrapper.orderByDesc(Dish::getUpdateTime).orderByAsc(Dish::getSort);
+        dishDtoList = list.stream().map((item)->{
+            DishDto dishDto = new DishDto();
+            BeanUtils.copyProperties(item,dishDto);
+            Long dishId = item.getId();
+            LambdaQueryWrapper<DishFlavor> lambdaQueryWrapper=new LambdaQueryWrapper<>();
+            lambdaQueryWrapper.eq(DishFlavor::getDishId,dishId);
+            //SQL: select * from dish_flavor where dish_id = ?
+            List<DishFlavor> dishFlavorList = dishFlavorService.list(lambdaQueryWrapper);
+            dishDto.setFlavors(dishFlavorList);
+            return dishDto;
+        }).collect(Collectors.toList());
 
-        List<Dish> list=dishService.list(queryWrapper);
+       return R.success(dishDtoList);
 
-        return  R.success(list);
+
 
     }
 
@@ -170,5 +182,7 @@ public class DishController {
         return R.success("修改成功");
 
     }
+
+
 
 }
